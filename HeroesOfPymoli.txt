@@ -1,0 +1,176 @@
+# 1
+# Dependencies and Setup
+import pandas as pd
+
+# Load the Data File
+file_to_load = "Resources/cust_data.csv"
+
+# Read Purchasing File and store into Pandas data frame
+purchase_data = pd.read_csv(file_to_load)
+pd.DataFrame(purchase_data)
+purchase_data
+
+
+# 2
+# Create a Dataframe with Unique names
+# We remove references to Items - some items have been deleted and
+# we should discourage performing statistics with that data.
+
+unique_df = purchase_data.drop_duplicates(["SN"], keep = "first")
+unique_df = unique_df.loc[:,["Purchase ID", "SN", "Age", "Gender"]]
+unique_df
+
+# 3
+# Determine the number of unique players
+
+player_count = len(purchase_data["SN"].unique())
+player_count
+
+# 4
+
+# Calculate number of unique items
+unique_item = len(purchase_data["Item Name"].unique())
+# Calculate Average Price of Each item
+average_price = purchase_data["Price"].mean()
+# Calculate the Total Number of Purchases
+purchase_count = len(purchase_data["Purchase ID"].unique())
+# Calculate Total Revenue from Items
+total_rev = purchase_data["Price"].sum()
+
+# Create the DataFrame from the four lines 
+tot_analysis = pd.DataFrame({"Number of Items": unique_item, "Average Price": average_price, 
+                             "Number of Purchases": purchase_count, "Total Revenue": total_rev},{"Summary"})
+# Format the columns that must be listed as dollars and cents
+tot_analysis["Average Price"] = tot_analysis["Average Price"].map('${:,.2f}'.format)
+tot_analysis["Total Revenue"] = tot_analysis["Total Revenue"].map('${:,.2f}'.format)
+# Display DataFrame
+tot_analysis
+
+# 5
+
+# Use the Unique dataframe to sort users by gender
+gender_root = unique_df.groupby("Gender")
+# Count the Purchase ID Row for Each Gender
+gender_demo = pd.DataFrame(gender_root["Purchase ID"].count())
+# Calculate the percentage of Total Players
+gender_demo["Percent of Players"] = (gender_demo["Purchase ID"]/player_count).map('{:,.2%}'.format)
+# Rename the first column so it says "Total Count"
+gender_demo.rename(columns = {"Purchase ID": "Total Count"}, inplace = True)
+# Display DataFrame
+gender_demo
+
+# 6
+
+# Take the initally read dataframe and redefine it.
+gender_setup = purchase_data
+# Determine number of purchase broken down by gender
+gender_frame = gender_setup.groupby("Gender")
+# Get a total count by Gender
+gender_anal = pd.DataFrame(gender_frame["Purchase ID"].count())
+# Calculate the Average item Price by Gender
+gender_anal["Average Price"] = gender_frame["Price"].mean().map('${:,.2f}'.format)
+# Calculate the Total item Price by Gender
+gender_anal["Total Price"] = gender_frame["Price"].sum().map('${:,.2f}'.format)
+# Calculate the amount purchased per user in each gender
+gender_anal["Purchase per User"] = (gender_frame["Price"].sum()/unique_df["Gender"].value_counts()).map('${:,.2f}'.format)
+# Rename the columns so it says "Total Count"
+gender_anal.rename(columns = {"Purchase ID": "Total Count"}, inplace = True)
+# Display DataFrame
+gender_anal
+
+# 7
+
+
+# Create age bins, , and a dataframe that is cut into the Age Groups
+bins=[0,9,14,19,24,29,34,39,199]
+# Create a column "Age Groups"
+age_groups = ["<10", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40+"]
+# Copy the unique items dataframe into "age_df"
+age_df = unique_df
+# Cut the dataframe by age, using the label "Age Groups" and cutting the data
+# in "bins"
+age_cut = pd.DataFrame(pd.cut(age_df["Age"], bins, labels = age_groups))
+# Place age-cut column into unique items df copy
+age_df["Age Range"] = age_cut["Age"]
+# Group the df by Age Frame
+age_grouping = age_df.groupby(["Age Range"], as_index = "False")
+# Provide a count for each age group
+# Produce a dataframe 
+age_count = pd.DataFrame(age_grouping["Purchase ID"].count())
+# Calculate the pct of each age group
+age_count["Percentage"] = (age_count["Purchase ID"]/player_count).map('{:,.2%}'.format)
+# Rename the second column "Total Count"
+age_count.rename(columns = {"Purchase ID": "Total Count"}, inplace = True)
+# Display the df
+age_count
+
+# 8
+#Copy original read dataframe
+age_data = purchase_data
+# Cut the Data Frame by bins, and turn that cut data into a new column
+age_data["Age Range"] = pd.cut(age_data["Age"], bins, labels = age_groups)
+# Group the data by "Age Range"
+age_group2 = age_data.groupby(["Age Range"], as_index = "False")
+# Get a count for each Age Group
+age_analysis = pd.DataFrame(age_group2["SN"].count())
+# Rename the second column to "Purchase Count"
+age_analysis.rename(columns={"SN" : "Purchase Count"}, inplace = True)
+# Calculate Average Purchase Price by Age
+age_analysis["Average Purchase Price"] = age_group2["Price"].mean().map('${:,.2f}'.format)
+#Calculate total amount of Purchases per age group
+age_analysis["Total Purchase Value"] = age_group2["Price"].sum().map('${:,.2f}'.format)
+# Calculate the total amount purchased per person for each age group
+age_analysis["Avg Total Purchase per Person"] = (age_group2["Price"].sum()/age_count["Total Count"]).map('${:,.2f}'.format)
+# Display the Data Frame
+age_analysis
+
+# 9
+
+# Group the original data by sign in names
+spend_primer = purchase_data.groupby(["SN"])
+# Produce a counter for each SN
+spender_anal = pd.DataFrame(spend_primer["Purchase ID"].count())
+# Calculate Average Price of each item
+spender_anal["Average Purchase Price"] = (spend_primer["Price"].sum()/spend_primer["Purchase ID"].count()).map('${:,.2f}'.format)
+# Calculate how meach each sN spent
+spender_anal["Total Purchase Value"] = spend_primer["Price"].sum()
+# Sort the values such that the top spenders are on top
+spender_anal.sort_values(by = "Total Purchase Value", inplace = True, ascending = False)
+# Format the "Total Purchase Value" so it's dollars and cents.  
+# Formatting before causes errors with performing calculations on that column.
+spender_anal["Total Purchase Value"] = (spender_anal["Total Purchase Value"]).map('${:,.2f}'.format)
+# Rename the second column "Total Count"
+spender_anal.rename(columns = {"Purchase ID": "Purchase Count"}, inplace = True)
+# Display the Data Frame
+spender_anal
+
+# 10
+
+#Group Purchases by Items
+items_primer = purchase_data.groupby(["Item ID"])
+# Count each purchase per item and create a dataframe
+popular_item = pd.DataFrame(items_primer["Item Name"].count())
+# Rename "Item Name" column "Purchase Count"
+popular_item.rename(columns = {"Item Name": "Purchase Count"}, inplace = True)
+# Take one item name per Item ID groupby and make that the name.
+popular_item["Item Name"] = items_primer["Item Name"].min()
+# Formate the "Item Price" column
+popular_item["Item Price"] = items_primer["Price"].min().map('${:,.2f}'.format)
+# Calculate Total value for each item
+popular_item["Total Purchase Value"] = items_primer["Item Name"].count()*items_primer["Price"].min()
+# Sort values such that the most profitable items are displayed first.
+popular_item.sort_values(by = "Total Purchase Value", inplace = True, ascending = False)
+# Trim the Data Frame to 4 columns, and sort columns appropriately
+popular_item = popular_item[["Item Name", "Purchase Count", "Item Price", "Total Purchase Value"]]
+# Format the "Total Purchase Value" so it's dollars and cents.  
+popular_item["Total Purchase Value"] = popular_item["Total Purchase Value"].map('${:,.2f}'.format)
+# Display dataframe
+popular_item.head(20)
+
+#11
+
+#using the same data frame as "Most Popular Items"
+# sort the data from # 10 by "Purchase Count"
+popular_item.sort_values(by = "Purchase Count", inplace = True, ascending = False)
+#Display
+popular_item.head(20)
